@@ -9,6 +9,7 @@ package org.as3wavsound {
 	import org.as3wavsound.sazameki.core.AudioSamples;
 	import org.as3wavsound.sazameki.core.AudioSetting;
 	import org.as3wavsound.sazameki.format.wav.Wav;
+	import org.as3wavsound.WavSoundChannel;
 	
 	/* 
 	 * --------------------------------------
@@ -86,15 +87,26 @@ package org.as3wavsound {
 		private var playbackSettings:AudioSetting;
 		private var _length:Number;
 
-		// play-time information
+		// play-time information *per WavSound*
 		private var startPhase:Number; // made global to avoid recalculating all the time
 		private var phase:Number = 0;
 		private var loopsLeft:Number;
 		private var finished:Boolean;
-		private var buffersize:Number;
 		
-		public function WavSound(wavData:ByteArray, audioSettings:AudioSetting = null, buffersize:Number = MAX_BUFFERSIZE) {
-			loadWav(wavData, audioSettings, buffersize);
+		// play-time information *overall playback* 
+		private static const sampleBuffer:AudioSamples = new AudioSamples(new AudioSetting(), MAX_BUFFERSIZE);
+		private static const playingWavSounds:Vector.<WavSoundChannel> = new Vector.<WavSoundChannel>();
+		private static const player:Sound = configurePlayer();
+		
+		private static function configurePlayer():Sound {
+			var player:Sound = new Sound();
+			player.addEventListener(SampleDataEvent.SAMPLE_DATA, onSamplesCallback);
+			player.play();
+			return player;
+		}
+		
+		public function WavSound(wavData:ByteArray, audioSettings:AudioSetting = null) {
+			loadWav(wavData, audioSettings);
 		}
 
 		public override function play(startTime:Number = 0, loops:int = 0, sndTransform:SoundTransform = null) : SoundChannel {
@@ -109,28 +121,55 @@ package org.as3wavsound {
 				phase = startPhase = Math.floor(startPositionInMillis * samples.length / _length);
 				finished = false;
 				loopsLeft = loops;
-				return super.play(0, loops, sndTransform);
+				
+				// reset SampleDataEvent handlers on all playing WavSounds and add handler to the current one
+				for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
+					//playingWavSound.wavSound.removeEventListener(SampleDataEvent.SAMPLE_DATA, onSamplesCallback);
+				}
+				addEventListener(SampleDataEvent.SAMPLE_DATA, function():void{});
+				var channel:SoundChannel = super.play(0, loops, sndTransform);
+				playingWavSounds.push(new WavSoundChannel(this, channel));
+				return channel;
 			}
 		}
 		
-		private function onSamplesCallback(e:SampleDataEvent):void {
-			for (var i:int = 0; i < buffersize; i++) {
+		private static function onSamplesCallback(e:SampleDataEvent):void {
+			sampleBuffer.clearSamples();
+			
+			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
+				playingWavSound.buffer(sampleBuffer);
+			}
+			
+			for (var i:int = 0; i < sampleBuffer.length; i++) {
+				e.data.writeFloat(sampleBuffer.left[i]);
+				e.data.writeFloat(sampleBuffer.right[i]);
+			}
+		}
+		
+		public function buffer(sampleBuffer:AudioSamples, soundTransform:SoundTransform):void {
+			for (var i:int = 0; i < sampleBuffer.length; i++) {
 				if (!finished) {
-					e.data.writeFloat(samples.left[phase]);
+					// calculate volume and panning
+					var volume: Number = (soundTransform.volume / 1);
+					var volumeLeft: Number = volume * (1 - soundTransform.pan) / 2;
+					var volumeRight: Number = volume * (1 + soundTransform.pan) / 2;
+					
+					// write buffer to outputstream
+					sampleBuffer.left[i] += samples.left[phase] * volumeLeft;
 					if (playbackSettings.channels == 2) {
 						var hasRightChannel:Boolean = samples.setting.channels == 2;
-						e.data.writeFloat((hasRightChannel) ? samples.right[phase] : samples.left[phase]);
+						sampleBuffer.right[i] += ((hasRightChannel) ? samples.right[phase] : samples.left[phase]) * volumeRight;
 					}
+					
+					// check playing and looping state
 					finished = ++phase >= samples.length;
-		
 					if (finished) {
 						phase = startPhase;
-						if (loopsLeft-- > 0) 
-						finished = false;
+						finished = loopsLeft-- == 0;
 					}
 				}
 			}
-		}		
+		}
 		
 		/// Returns the currently available number of bytes in this sound object.
 		public override function get bytesLoaded () : uint {
@@ -170,20 +209,25 @@ package org.as3wavsound {
 
 		/// Initiates loading of an external MP3 file from the specified URL.
 		public override function load(stream:URLRequest, context:SoundLoaderContext = null) : void {
-			removeEventListener(SampleDataEvent.SAMPLE_DATA, onSamplesCallback);
 			legacyMode = true;
+			// remove all playing channels that are associated with this WavSound
+			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
+				if (playingWavSound.wavSound == this) {
+					playingWavSounds.splice(playingWavSounds.lastIndexOf(playingWavSound), 1);
+				}
+			}
+			// stop playing this sound for all channels
+			//removeEventListener(SampleDataEvent.SAMPLE_DATA, onSamplesCallback);
 			super.load(stream, context);
 		}
 
 		/// Initiates loading of an external WAV sound from the specified ByteArray.
-		public function loadWav(wavData:ByteArray, audioSettings:AudioSetting = null, buffersize:Number = MAX_BUFFERSIZE): void {
+		public function loadWav(wavData:ByteArray, audioSettings:AudioSetting = null): void {
+			legacyMode = false;
 			this.wavData = wavData;
 			this.samples = new Wav().decode(wavData);
 			this.playbackSettings = (audioSettings != null) ? audioSettings : new AudioSetting();
-			this.buffersize = buffersize;
 			this._length = samples.length / samples.setting.sampleRate * 1000;
-			addEventListener(SampleDataEvent.SAMPLE_DATA, onSamplesCallback);
-			legacyMode = false;
 		}
 	}
 }

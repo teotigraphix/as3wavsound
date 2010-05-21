@@ -9,11 +9,11 @@ package org.as3wavsound.sazameki.core {
 		public var right:Vector.<Number>;
 		private var _setting:AudioSetting;
 		
-		public function AudioSamples(setting:AudioSetting) {
+		public function AudioSamples(setting:AudioSetting, length:Number = 0) {
 			this._setting = setting;
-			this.left = new Vector.<Number>();
+			this.left = new Vector.<Number>(length, length > 0);
 			if (setting.channels == 2) {
-				this.right = new Vector.<Number>();
+				this.right = new Vector.<Number>(length, length > 0);
 			}
 		}
 		
