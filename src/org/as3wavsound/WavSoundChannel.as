@@ -4,16 +4,19 @@ package org.as3wavsound {
 	import org.as3wavsound.WavSound;
 
 	/**
-	 * This class is used to keep track of open channels during playback.
+	 * Used to keep track of open channels during playback.
 	 * 	 
-	 * since we need the channel to retrieve the SoundTransform from (for volume 
+	 * Since we need the channel to retrieve the SoundTransform from (for volume 
 	 * and panning) and the Sound object provides no way to get this, we keep 
-	 * track of it manually.      
+	 * track of it manually for each playing WavSound (there can be multiple 
+	 * channels per WavSound.
 	 *     	 
 	 * @author b.bottema [Codemonkey]
 	 */
 	internal class WavSoundChannel {
+		// a WavSound currently playing back on one or several channels
 		private var _wavSound:WavSound;
+		// one channel associated with the WavSound being played back
 		private var _channel:SoundChannel;
 		
 		public function WavSoundChannel(wavSound:WavSound, channel:SoundChannel) {

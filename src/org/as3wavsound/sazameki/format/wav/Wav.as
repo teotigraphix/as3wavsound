@@ -9,7 +9,8 @@ package org.as3wavsound.sazameki.format.wav {
 	import org.as3wavsound.sazameki.format.wav.chunk.WavfmtChunk;
 	
 	/**
-	 * ...
+	 * The WAVE decoder used for playing back wav files.
+	 * 
 	 * @author Takaaki Yamazaki(zk design), modified by b.bottema [Codemonkey]
 	 */
 	public class Wav extends RIFF {
@@ -43,5 +44,4 @@ package org.as3wavsound.sazameki.format.wav {
 			}
 		}
 	}
-	
 }

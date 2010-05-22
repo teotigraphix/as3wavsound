@@ -1,7 +1,12 @@
 package org.as3wavsound.sazameki.core {
 	
 	/**
-	 * ...
+	 * Contains lists of samples -left and optionally right- decoded from a 
+	 * WAVE ByteArray or manually mixed samples.
+	 * 
+	 * Also contains a reference to an AudioSetting instance associated by 
+	 * this samples container.
+	 * 
 	 * @author Takaaki Yamazaki(zk design), modified by b.bottema [Codemonkey]
 	 */
 	public class AudioSamples {
@@ -9,6 +14,10 @@ package org.as3wavsound.sazameki.core {
 		public var right:Vector.<Number>;
 		private var _setting:AudioSetting;
 		
+		/**
+		 * @param	length Can be zero when decoding WAVE data, or a fixed buffer 
+		 * 			size when mixing to a Sound's outputstream.
+		 */
 		public function AudioSamples(setting:AudioSetting, length:Number = 0) {
 			this._setting = setting;
 			this.left = new Vector.<Number>(length, length > 0);
@@ -25,6 +34,10 @@ package org.as3wavsound.sazameki.core {
 			return _setting;
 		}
 		
+		/**
+		 * Always resets length to its former state. Don't call this after creating 
+		 * an instance of AudioSamples, or its length is always zero.
+		 */
 		public function clearSamples():void {
 			left = new Vector.<Number>(length, true);
 			if (setting.channels == 2) {

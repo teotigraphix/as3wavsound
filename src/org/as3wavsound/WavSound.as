@@ -64,7 +64,7 @@ package org.as3wavsound {
 	 * MP3's played through the load() method.
 	 * 
 	 * Simply embed .wav files as you would mp3's and play with this Sound class.
-	 * Make sure you provide mimtype 'application/octet-stream' when embedding to 
+	 * Make sure you provide mimetype 'application/octet-stream' when embedding to 
 	 * ensure Flash embeds the data as ByteArray.
 	 * 
 	 * Example:
@@ -81,23 +81,47 @@ package org.as3wavsound {
 		// used to switch the runtime behavior of this Sound object, for backwards compatibility
 		private var legacyMode:Boolean;
 		
-		// creation-time information
+		/*
+		 * creation-time information 
+		 */
+		
+		// original encoded wav data
 		private var wavData:ByteArray;
+		// extracted sound data for mixing
 		private var samples:AudioSamples;
+		// each sound can be configured to be played mono/stereo using AudioSetting
 		private var playbackSettings:AudioSetting;
+		// calculated length of the entire sound in milliseconds, made global to avoid recalculating all the time
 		private var _length:Number;
-
-		// play-time information *per WavSound*
-		private var startPhase:Number; // made global to avoid recalculating all the time
+		
+		/*
+		 * play-time information *per WavSound*
+		 */
+		
+		// starting phase if not at the beginning, made global to avoid recalculating all the time
+		private var startPhase:Number; 
+		// current phase of the sound, basically matches a single current sample frame for each WavSound
 		private var phase:Number = 0;
+		// how many loops we need to buffer
 		private var loopsLeft:Number;
+		// indicates if the phase has reached total sample count and no loops are left
 		private var finished:Boolean;
 		
-		// play-time information *overall playback* 
+		/*
+		 * play-time information *overall playback*
+		 */
+		
+		// the master samples buffer in which all seperate Wavsounds are mixed into, always stereo at 44100Hz and bitrate 16
 		private static const sampleBuffer:AudioSamples = new AudioSamples(new AudioSetting(), MAX_BUFFERSIZE);
+		// a list of all WavSound currenctly in playing mode
 		private static const playingWavSounds:Vector.<WavSoundChannel> = new Vector.<WavSoundChannel>();
+		// the singular playback SOund with which all other WavSounds are played back
 		private static const player:Sound = configurePlayer();
 		
+		/**
+		 * Static initializer: creates, configures and run the singular sound player. 
+		 * Until play() has been called on a WavSound, nothing is audible.
+		 */
 		private static function configurePlayer():Sound {
 			var player:Sound = new Sound();
 			player.addEventListener(SampleDataEvent.SAMPLE_DATA, onSamplesCallback);
@@ -105,10 +129,86 @@ package org.as3wavsound {
 			return player;
 		}
 		
+		/**
+		 * The heartbeat of the WavSound approach.
+		 * Invoked by the player appointed static Sound object.
+		 * 
+		 * Together with this callback all WavSound instances stored in this static list
+		 * playingWavSounds are mixed together and then written to the outputstream 
+		 * 
+		 * @param	event Contains the outputstream to mix sound samples into.
+		 */
+		private static function onSamplesCallback(event:SampleDataEvent):void {
+			sampleBuffer.clearSamples();
+			
+			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
+				playingWavSound.buffer(sampleBuffer);
+			}
+			
+			var outputStream:ByteArray = event.data;
+			for (var i:int = 0; i < sampleBuffer.length; i++) {
+				outputStream.writeFloat(sampleBuffer.left[i]);
+				outputStream.writeFloat(sampleBuffer.right[i]);
+			}
+		}
+		
+		/**
+		 * Constructor: loads wavdata using loadWav().
+		 * 
+		 * @param	wavData A ByteArray containing uncmopressed wav data.
+		 * @param	audioSettings An optional playback configuration (mono/stereo, 
+		 * 			sample rate and bit rate).
+		 */
 		public function WavSound(wavData:ByteArray, audioSettings:AudioSetting = null) {
 			loadWav(wavData, audioSettings);
 		}
 
+		/**
+		 * Loads WAVE data.
+		 * 
+		 * Resets this WavSound and turns off legacy mode to act as a WavSound object.
+		 * 
+		 * @param	wavData
+		 * @param	audioSettings
+		 */
+		public function loadWav(wavData:ByteArray, audioSettings:AudioSetting = null): void {
+			legacyMode = false;
+			this.wavData = wavData;
+			this.samples = new Wav().decode(wavData);
+			this.playbackSettings = (audioSettings != null) ? audioSettings : new AudioSetting();
+			this._length = samples.length / samples.setting.sampleRate * 1000;
+		}
+
+		/**
+		 * Loads MP3 data.
+		 * 
+		 * Resets this WavSound and turns on legacy mode to act as if it were a basic Sound object.
+		 * Also stops all playing channels for this WavSound.
+		 */
+		public override function load(stream:URLRequest, context:SoundLoaderContext = null) : void {
+			legacyMode = true;
+			// remove all playing channels that are associated with this WavSound
+			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
+				if (playingWavSound.wavSound == this) {
+					playingWavSounds.splice(playingWavSounds.lastIndexOf(playingWavSound), 1);
+				}
+			}
+			super.load(stream, context);
+		}
+
+		/**
+		 * Playback function that performs the following tasks:
+		 * 
+		 * - calculates the startingPhase, bases on startTime in ms.
+		 * - initializes loopsLeft variable
+		 * - registers a dummy function for SampleDataEvent.SAMPLE_DATA to avoid 'invalid Sound' error
+		 * - adds the playing channel in combination with its originating WavSound to the playingWavSounds
+		 * 
+		 * @param	startTime The starting time in milliseconds, applies to each loop (as with regular MP3 Sounds).
+		 * @param	loops The number of loops to take in *addition* to the default playback (loops == 2 -> 3 playthroughs).
+		 * @param	sndTransform An optional soundtransform to apply for playback that controls volume and panning.
+		 * @return The SoundChannel used for playing back the sound.
+		 */
 		public override function play(startTime:Number = 0, loops:int = 0, sndTransform:SoundTransform = null) : SoundChannel {
 			if (legacyMode) {
 				return super.play(startTime, loops, sndTransform);
@@ -122,10 +222,6 @@ package org.as3wavsound {
 				finished = false;
 				loopsLeft = loops;
 				
-				// reset SampleDataEvent handlers on all playing WavSounds and add handler to the current one
-				for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
-					//playingWavSound.wavSound.removeEventListener(SampleDataEvent.SAMPLE_DATA, onSamplesCallback);
-				}
 				addEventListener(SampleDataEvent.SAMPLE_DATA, function():void{});
 				var channel:SoundChannel = super.play(0, loops, sndTransform);
 				playingWavSounds.push(new WavSoundChannel(this, channel));
@@ -133,19 +229,17 @@ package org.as3wavsound {
 			}
 		}
 		
-		private static function onSamplesCallback(e:SampleDataEvent):void {
-			sampleBuffer.clearSamples();
-			
-			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
-				playingWavSound.buffer(sampleBuffer);
-			}
-			
-			for (var i:int = 0; i < sampleBuffer.length; i++) {
-				e.data.writeFloat(sampleBuffer.left[i]);
-				e.data.writeFloat(sampleBuffer.right[i]);
-			}
-		}
-		
+		/**
+		 * Fills a target samplebuffer with optionally transformed samples from the current WavSound.
+		 * 
+		 * Keeps filling the buffer for each loop the sound should be mixed in the target buffer.
+		 * When the buffer is full, phase and loopsLeft keep track of how which and many samples 
+		 * still need to be buffered in the next buffering cycle (when this method is called again).
+		 * 
+		 * @param	sampleBuffer The target buffer to mix in the current (transformed) samples.
+		 * @param	soundTransform The soundtransform that belongs to a single channel being played 
+		 * 			(containing volume, panning etc.).
+		 */
 		public function buffer(sampleBuffer:AudioSamples, soundTransform:SoundTransform):void {
 			for (var i:int = 0; i < sampleBuffer.length; i++) {
 				if (!finished) {
@@ -154,12 +248,11 @@ package org.as3wavsound {
 					var volumeLeft: Number = volume * (1 - soundTransform.pan) / 2;
 					var volumeRight: Number = volume * (1 + soundTransform.pan) / 2;
 					
-					// write buffer to outputstream
+					// write (transformed) samples to buffer
 					sampleBuffer.left[i] += samples.left[phase] * volumeLeft;
-					if (playbackSettings.channels == 2) {
-						var hasRightChannel:Boolean = samples.setting.channels == 2;
-						sampleBuffer.right[i] += ((hasRightChannel) ? samples.right[phase] : samples.left[phase]) * volumeRight;
-					}
+					var needRightChannel:Boolean = playbackSettings.channels == 2;
+					var hasRightChannel:Boolean = samples.setting.channels == 2;
+					sampleBuffer.right[i] += ((needRightChannel && hasRightChannel) ? samples.right[phase] : samples.left[phase]) * volumeRight;
 					
 					// check playing and looping state
 					finished = ++phase >= samples.length;
@@ -171,22 +264,31 @@ package org.as3wavsound {
 			}
 		}
 		
-		/// Returns the currently available number of bytes in this sound object.
+		/**
+		 * Returns the total bytes of the wavData the current WavSound was created with.
+		 */
 		public override function get bytesLoaded () : uint {
 			return (legacyMode) ? super.bytesLoaded : wavData.length;
 		}
 
-		/// Returns the total number of bytes in this sound object.
+		/**
+		 * Returns the total bytes of the wavData the current WavSound was created with.
+		 */
 		public override function get bytesTotal () : int {
 			return (legacyMode) ? super.bytesTotal : wavData.length;
 		}
 
-		/// The length of the current sound in milliseconds.
+		/**
+		 * Returns the total length of the sound in milliseconds.
+		 */
 		public override function get length() : Number {
 			return (legacyMode) ? super.length : _length;
 		}
-
-		/// Extracts raw sound data from a Sound object.
+		
+		/**
+		 * No idea if this works. Alpha state. Read up on Sound.extract():
+		 * http://help.adobe.com/en_US/FlashPlatform/reference/actionscript/3/flash/media/Sound.html#extract()
+		 */
 		public override function extract(target:ByteArray, length:Number, startPosition:Number = -1): Number {
 			if (legacyMode) {
 				return super.extract(target, length, startPosition);
@@ -205,29 +307,6 @@ package org.as3wavsound {
 				
 				return samples.length;
 			}
-		}
-
-		/// Initiates loading of an external MP3 file from the specified URL.
-		public override function load(stream:URLRequest, context:SoundLoaderContext = null) : void {
-			legacyMode = true;
-			// remove all playing channels that are associated with this WavSound
-			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
-				if (playingWavSound.wavSound == this) {
-					playingWavSounds.splice(playingWavSounds.lastIndexOf(playingWavSound), 1);
-				}
-			}
-			// stop playing this sound for all channels
-			//removeEventListener(SampleDataEvent.SAMPLE_DATA, onSamplesCallback);
-			super.load(stream, context);
-		}
-
-		/// Initiates loading of an external WAV sound from the specified ByteArray.
-		public function loadWav(wavData:ByteArray, audioSettings:AudioSetting = null): void {
-			legacyMode = false;
-			this.wavData = wavData;
-			this.samples = new Wav().decode(wavData);
-			this.playbackSettings = (audioSettings != null) ? audioSettings : new AudioSetting();
-			this._length = samples.length / samples.setting.sampleRate * 1000;
 		}
 	}
 }
