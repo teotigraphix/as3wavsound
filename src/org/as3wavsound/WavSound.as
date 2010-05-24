@@ -9,7 +9,6 @@ package org.as3wavsound {
 	import org.as3wavsound.sazameki.core.AudioSamples;
 	import org.as3wavsound.sazameki.core.AudioSetting;
 	import org.as3wavsound.sazameki.format.wav.Wav;
-	import org.as3wavsound.WavSoundChannel;
 	
 	/* 
 	 * --------------------------------------
@@ -127,7 +126,7 @@ package org.as3wavsound {
 		 */
 		public override function load(stream:URLRequest, context:SoundLoaderContext = null) : void {
 			legacyMode = true;
-			player.stop(this);
+			player.stopAll(this);
 			super.load(stream, context);
 		}
 

@@ -1,6 +1,5 @@
 package org.as3wavsound {
 	import flash.media.SoundChannel;
-	import flash.media.SoundTransform;
 	import org.as3wavsound.sazameki.core.AudioSamples;
 	import org.as3wavsound.WavSound;
 

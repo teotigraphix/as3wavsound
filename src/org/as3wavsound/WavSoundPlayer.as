@@ -1,14 +1,9 @@
 package org.as3wavsound {
 	import flash.events.SampleDataEvent;
 	import flash.media.Sound;
-	import flash.media.SoundChannel;
-	import flash.media.SoundLoaderContext;
-	import flash.media.SoundTransform;
-	import flash.net.URLRequest;
 	import flash.utils.ByteArray;
 	import org.as3wavsound.sazameki.core.AudioSamples;
 	import org.as3wavsound.sazameki.core.AudioSetting;
-	import org.as3wavsound.sazameki.format.wav.Wav;
 	import org.as3wavsound.WavSoundChannel;
 	
 	/* 
@@ -119,9 +114,20 @@ package org.as3wavsound {
 		/**
 		 * Remove all playing channels that are associated with the given WavSound.
 		 */
-		public function stop(wavSound:WavSound):void {
+		public function stopAll(wavSound:WavSound):void {
 			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
 				if (playingWavSound.wavSound == wavSound) {
+					playingWavSounds.splice(playingWavSounds.lastIndexOf(playingWavSound), 1);
+				}
+			}
+		}
+		
+		/**
+		 * Remove all playing channels that are associated with the given WavSound.
+		 */
+		public function stop(channel:WavSoundChannel):void {
+			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
+				if (playingWavSound == channel) {
 					playingWavSounds.splice(playingWavSounds.lastIndexOf(playingWavSound), 1);
 				}
 			}
