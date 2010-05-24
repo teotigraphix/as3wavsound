@@ -89,24 +89,30 @@ package org.as3wavsound {
 		
 		/**
 		 * The heartbeat of the WavSound approach.
-		 * Invoked by the player appointed static Sound object.
+		 * Invoked by the player appointed Sound object.
 		 * 
-		 * Together with this callback all WavSound instances stored in this static list
+		 * Together with this callback all WavSound instances stored in the list
 		 * playingWavSounds are mixed together and then written to the outputstream 
 		 * 
 		 * @param	event Contains the outputstream to mix sound samples into.
 		 */
 		private function onSamplesCallback(event:SampleDataEvent):void {
+			// clear the buffer
 			sampleBuffer.clearSamples();
-			
+			// have all channels mix their into the master sample buffer
 			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
 				playingWavSound.buffer(sampleBuffer);
 			}
 			
+			// extra references to avoid excessive getter calls in the following 
+			// for-loop (it appeared CPU was seriously being hogged otherwise)
 			var outputStream:ByteArray = event.data;
+			var samplesLeft:Vector.<Number> = sampleBuffer.left;
+			var samplesRight:Vector.<Number> = sampleBuffer.right;
+			// write all mixed samples to the sound's outputstream
 			for (var i:int = 0; i < sampleBuffer.length; i++) {
-				outputStream.writeFloat(sampleBuffer.left[i]);
-				outputStream.writeFloat(sampleBuffer.right[i]);
+				outputStream.writeFloat(samplesLeft[i]);
+				outputStream.writeFloat(samplesRight[i]);
 			}
 		}
 		

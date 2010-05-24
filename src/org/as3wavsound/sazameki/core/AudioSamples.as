@@ -10,8 +10,8 @@ package org.as3wavsound.sazameki.core {
 	 * @author Takaaki Yamazaki(zk design), modified by b.bottema [Codemonkey]
 	 */
 	public class AudioSamples {
-		public var left:Vector.<Number>;
-		public var right:Vector.<Number>;
+		public var _left:Vector.<Number>;
+		public var _right:Vector.<Number>;
 		private var _setting:AudioSetting;
 		
 		/**
@@ -20,9 +20,20 @@ package org.as3wavsound.sazameki.core {
 		 */
 		public function AudioSamples(setting:AudioSetting, length:Number = 0) {
 			this._setting = setting;
-			this.left = new Vector.<Number>(length, length > 0);
+			this._left = new Vector.<Number>(length, length > 0);
 			if (setting.channels == 2) {
-				this.right = new Vector.<Number>(length, length > 0);
+				this._right = new Vector.<Number>(length, length > 0);
+			}
+		}
+		
+		/**
+		 * Always resets length to its former state. Don't call this after creating 
+		 * an instance of AudioSamples, or its length is always zero.
+		 */
+		public function clearSamples():void {
+			_left = new Vector.<Number>(length, true);
+			if (setting.channels == 2) {
+				_right = new Vector.<Number>(length, true);
 			}
 		}
 		
@@ -34,15 +45,12 @@ package org.as3wavsound.sazameki.core {
 			return _setting;
 		}
 		
-		/**
-		 * Always resets length to its former state. Don't call this after creating 
-		 * an instance of AudioSamples, or its length is always zero.
-		 */
-		public function clearSamples():void {
-			left = new Vector.<Number>(length, true);
-			if (setting.channels == 2) {
-				right = new Vector.<Number>(length, true);
-			}
+		public function get left():Vector.<Number> {
+			return _left;
+		}
+		
+		public function get right():Vector.<Number> {
+			return _right;
 		}
 	}
 }

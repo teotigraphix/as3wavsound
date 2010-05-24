@@ -83,31 +83,14 @@ package org.as3wavsound {
 		// the master Sound player, which mixes all playing WavSound samples on any given moment
 		private static const player:WavSoundPlayer = new WavSoundPlayer();
 		
-		/*
-		 * creation-time information 
-		 */
-		
-		// original encoded wav data
-		private var wavData:ByteArray;
+		// length of the original encoded wav data
+		private var _bytesTotal:Number;
 		// extracted sound data for mixing
-		private var samples:AudioSamples;
+		private var _samples:AudioSamples;
 		// each sound can be configured to be played mono/stereo using AudioSetting
-		private var playbackSettings:AudioSetting;
+		private var _playbackSettings:AudioSetting;
 		// calculated length of the entire sound in milliseconds, made global to avoid recalculating all the time
 		private var _length:Number;
-		
-		/*
-		 * play-time information *per WavSound*
-		 */
-		
-		// starting phase if not at the beginning, made global to avoid recalculating all the time
-		private var startPhase:Number; 
-		// current phase of the sound, basically matches a single current sample frame for each WavSound
-		private var phase:Number = 0;
-		// how many loops we need to buffer
-		private var loopsLeft:Number;
-		// indicates if the phase has reached total sample count and no loops are left
-		private var finished:Boolean;
 		
 		/**
 		 * Constructor: loads wavdata using loadWav().
@@ -130,9 +113,9 @@ package org.as3wavsound {
 		 */
 		public function loadWav(wavData:ByteArray, audioSettings:AudioSetting = null): void {
 			legacyMode = false;
-			this.wavData = wavData;
-			this.samples = new Wav().decode(wavData);
-			this.playbackSettings = (audioSettings != null) ? audioSettings : new AudioSetting();
+			this._bytesTotal = wavData.length;
+			this._samples = new Wav().decode(wavData);
+			this._playbackSettings = (audioSettings != null) ? audioSettings : new AudioSetting();
 			this._length = samples.length / samples.setting.sampleRate * 1000;
 		}
 
@@ -165,76 +148,11 @@ package org.as3wavsound {
 			if (legacyMode) {
 				return super.play(startTime, loops, sndTransform);
 			} else {
-				var startPositionInMillis:Number = Math.floor(startTime);
-				var maxPositionInMillis:Number = Math.floor(length);
-				if (startPositionInMillis > maxPositionInMillis) {
-					throw new Error("startTime greater than sound's length, max startTime is " + maxPositionInMillis);
-				}
-				phase = startPhase = Math.floor(startPositionInMillis * samples.length / _length);
-				finished = false;
-				loopsLeft = loops;
-				
 				addEventListener(SampleDataEvent.SAMPLE_DATA, function():void{});
 				var channel:SoundChannel = super.play(0, loops, sndTransform);
-				player.playingWavSounds.push(new WavSoundChannel(this, channel));
+				player.playingWavSounds.push(new WavSoundChannel(this, startTime, loops, channel));
 				return channel;
 			}
-		}
-		
-		/**
-		 * Fills a target samplebuffer with optionally transformed samples from the current WavSound.
-		 * 
-		 * Keeps filling the buffer for each loop the sound should be mixed in the target buffer.
-		 * When the buffer is full, phase and loopsLeft keep track of how which and many samples 
-		 * still need to be buffered in the next buffering cycle (when this method is called again).
-		 * 
-		 * @param	sampleBuffer The target buffer to mix in the current (transformed) samples.
-		 * @param	soundTransform The soundtransform that belongs to a single channel being played 
-		 * 			(containing volume, panning etc.).
-		 */
-		public function buffer(sampleBuffer:AudioSamples, soundTransform:SoundTransform):void {
-			for (var i:int = 0; i < sampleBuffer.length; i++) {
-				if (!finished) {
-					// calculate volume and panning
-					var volume: Number = (soundTransform.volume / 1);
-					var volumeLeft: Number = volume * (1 - soundTransform.pan) / 2;
-					var volumeRight: Number = volume * (1 + soundTransform.pan) / 2;
-					
-					// write (transformed) samples to buffer
-					sampleBuffer.left[i] += samples.left[phase] * volumeLeft;
-					var needRightChannel:Boolean = playbackSettings.channels == 2;
-					var hasRightChannel:Boolean = samples.setting.channels == 2;
-					sampleBuffer.right[i] += ((needRightChannel && hasRightChannel) ? samples.right[phase] : samples.left[phase]) * volumeRight;
-					
-					// check playing and looping state
-					finished = ++phase >= samples.length;
-					if (finished) {
-						phase = startPhase;
-						finished = loopsLeft-- == 0;
-					}
-				}
-			}
-		}
-		
-		/**
-		 * Returns the total bytes of the wavData the current WavSound was created with.
-		 */
-		public override function get bytesLoaded () : uint {
-			return (legacyMode) ? super.bytesLoaded : wavData.length;
-		}
-
-		/**
-		 * Returns the total bytes of the wavData the current WavSound was created with.
-		 */
-		public override function get bytesTotal () : int {
-			return (legacyMode) ? super.bytesTotal : wavData.length;
-		}
-
-		/**
-		 * Returns the total length of the sound in milliseconds.
-		 */
-		public override function get length() : Number {
-			return (legacyMode) ? super.length : _length;
 		}
 		
 		/**
@@ -249,16 +167,45 @@ package org.as3wavsound {
 				var end:Number = Math.min(length, samples.length);
 				
 				for (var i:Number = start; i < end; i++) {
-					target.writeFloat(samples.left[phase]);
+					target.writeFloat(samples.left[i]);
 					if (samples.setting.channels == 2) {
-						target.writeFloat(samples.right[phase]);
+						target.writeFloat(samples.right[i]);
 					} else {
-						target.writeFloat(samples.left[phase]);
+						target.writeFloat(samples.left[i]);
 					}
 				}
 				
 				return samples.length;
 			}
+		}
+		
+		/**
+		 * Returns the total bytes of the wavData the current WavSound was created with.
+		 */
+		public override function get bytesLoaded () : uint {
+			return (legacyMode) ? super.bytesLoaded : _bytesTotal;
+		}
+
+		/**
+		 * Returns the total bytes of the wavData the current WavSound was created with.
+		 */
+		public override function get bytesTotal () : int {
+			return (legacyMode) ? super.bytesTotal : _bytesTotal;
+		}
+
+		/**
+		 * Returns the total length of the sound in milliseconds.
+		 */
+		public override function get length() : Number {
+			return (legacyMode) ? super.length : _length;
+		}
+		
+		internal function get samples():AudioSamples {
+			return _samples;
+		}
+		
+		internal function get playbackSettings():AudioSetting {
+			return _playbackSettings;
 		}
 	}
 }
