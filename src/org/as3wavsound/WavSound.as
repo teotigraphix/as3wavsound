@@ -76,10 +76,12 @@ package org.as3wavsound {
 	 * @author b.bottema [Codemonkey]
 	 */
 	public class WavSound extends Sound {
-		private static const MAX_BUFFERSIZE:Number = 8192;
 		
 		// used to switch the runtime behavior of this Sound object, for backwards compatibility
 		private var legacyMode:Boolean;
+		
+		// the master Sound player, which mixes all playing WavSound samples on any given moment
+		private static const player:WavSoundPlayer = new WavSoundPlayer();
 		
 		/*
 		 * creation-time information 
@@ -106,51 +108,6 @@ package org.as3wavsound {
 		private var loopsLeft:Number;
 		// indicates if the phase has reached total sample count and no loops are left
 		private var finished:Boolean;
-		
-		/*
-		 * play-time information *overall playback*
-		 */
-		
-		// the master samples buffer in which all seperate Wavsounds are mixed into, always stereo at 44100Hz and bitrate 16
-		private static const sampleBuffer:AudioSamples = new AudioSamples(new AudioSetting(), MAX_BUFFERSIZE);
-		// a list of all WavSound currenctly in playing mode
-		private static const playingWavSounds:Vector.<WavSoundChannel> = new Vector.<WavSoundChannel>();
-		// the singular playback SOund with which all other WavSounds are played back
-		private static const player:Sound = configurePlayer();
-		
-		/**
-		 * Static initializer: creates, configures and run the singular sound player. 
-		 * Until play() has been called on a WavSound, nothing is audible.
-		 */
-		private static function configurePlayer():Sound {
-			var player:Sound = new Sound();
-			player.addEventListener(SampleDataEvent.SAMPLE_DATA, onSamplesCallback);
-			player.play();
-			return player;
-		}
-		
-		/**
-		 * The heartbeat of the WavSound approach.
-		 * Invoked by the player appointed static Sound object.
-		 * 
-		 * Together with this callback all WavSound instances stored in this static list
-		 * playingWavSounds are mixed together and then written to the outputstream 
-		 * 
-		 * @param	event Contains the outputstream to mix sound samples into.
-		 */
-		private static function onSamplesCallback(event:SampleDataEvent):void {
-			sampleBuffer.clearSamples();
-			
-			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
-				playingWavSound.buffer(sampleBuffer);
-			}
-			
-			var outputStream:ByteArray = event.data;
-			for (var i:int = 0; i < sampleBuffer.length; i++) {
-				outputStream.writeFloat(sampleBuffer.left[i]);
-				outputStream.writeFloat(sampleBuffer.right[i]);
-			}
-		}
 		
 		/**
 		 * Constructor: loads wavdata using loadWav().
@@ -187,12 +144,7 @@ package org.as3wavsound {
 		 */
 		public override function load(stream:URLRequest, context:SoundLoaderContext = null) : void {
 			legacyMode = true;
-			// remove all playing channels that are associated with this WavSound
-			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
-				if (playingWavSound.wavSound == this) {
-					playingWavSounds.splice(playingWavSounds.lastIndexOf(playingWavSound), 1);
-				}
-			}
+			player.stop(this);
 			super.load(stream, context);
 		}
 
@@ -224,7 +176,7 @@ package org.as3wavsound {
 				
 				addEventListener(SampleDataEvent.SAMPLE_DATA, function():void{});
 				var channel:SoundChannel = super.play(0, loops, sndTransform);
-				playingWavSounds.push(new WavSoundChannel(this, channel));
+				player.playingWavSounds.push(new WavSoundChannel(this, channel));
 				return channel;
 			}
 		}
