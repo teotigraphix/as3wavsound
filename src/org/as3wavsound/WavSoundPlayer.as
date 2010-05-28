@@ -123,7 +123,7 @@ package org.as3wavsound {
 		}
 		
 		/**
-		 * Remove all playing channels that are associated with the given WavSound.
+		 * Remove a spific currently playing channel.
 		 */
 		public function stop(channel:WavSoundChannel):void {
 			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
