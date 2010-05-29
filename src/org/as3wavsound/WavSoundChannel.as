@@ -83,18 +83,21 @@ package org.as3wavsound {
 			var hasRightChannel:Boolean = _wavSound.samples.setting.channels == 2;
 			
 			// extra references to avoid excessive getter calls in the following 
-			// for-loop (it appeared CPU was seriously being hogged otherwise)
+			// for-loop (it appeares CPU is being hogged otherwise)
 			var samplesLength:Number = _wavSound.samples.length;
 			var samplesLeft:Vector.<Number> = _wavSound.samples.left;
 			var samplesRight:Vector.<Number> = _wavSound.samples.right;
+			var sampleBufferLength:Number = sampleBuffer.length;
+			var sampleBufferLeft:Vector.<Number> = sampleBuffer.left;
+			var sampleBufferRight:Vector.<Number> = sampleBuffer.right;
 			
 			// finally, mix the samples in the master sample buffer
-			for (var i:int = 0; i < sampleBuffer.length; i++) {
+			for (var i:int = 0; i < sampleBufferLength; i++) {
 				if (!finished) {					
 					// write (transformed) samples to buffer
-					sampleBuffer.left[i] += samplesLeft[phase] * volumeLeft;
+					sampleBufferLeft[i] += samplesLeft[phase] * volumeLeft;
 					var channelValue:Number = ((needRightChannel && hasRightChannel) ? samplesRight[phase] : samplesLeft[phase]);
-					sampleBuffer.right[i] += channelValue * volumeRight;
+					sampleBufferRight[i] += channelValue * volumeRight;
 					
 					// check playing and looping state
 					finished = ++phase >= samplesLength;
