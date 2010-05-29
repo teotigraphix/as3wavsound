@@ -100,12 +100,14 @@ package org.as3wavsound {
 			}
 			
 			// extra references to avoid excessive getter calls in the following 
-			// for-loop (it appeared CPU was seriously being hogged otherwise)
+			// for-loop (it appeares CPU is being hogged otherwise)
 			var outputStream:ByteArray = event.data;
+			var samplesLength:Number = sampleBuffer.length;
 			var samplesLeft:Vector.<Number> = sampleBuffer.left;
 			var samplesRight:Vector.<Number> = sampleBuffer.right;
+			
 			// write all mixed samples to the sound's outputstream
-			for (var i:int = 0; i < sampleBuffer.length; i++) {
+			for (var i:int = 0; i < samplesLength; i++) {
 				outputStream.writeFloat(samplesLeft[i]);
 				outputStream.writeFloat(samplesRight[i]);
 			}
