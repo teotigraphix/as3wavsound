@@ -135,7 +135,6 @@ package org.as3wavsound {
 		 * 
 		 * - calculates the startingPhase, bases on startTime in ms.
 		 * - initializes loopsLeft variable
-		 * - registers a dummy function for SampleDataEvent.SAMPLE_DATA to avoid 'invalid Sound' error
 		 * - adds the playing channel in combination with its originating WavSound to the playingWavSounds
 		 * 
 		 * @param	startTime The starting time in milliseconds, applies to each loop (as with regular MP3 Sounds).
@@ -147,7 +146,6 @@ package org.as3wavsound {
 			if (legacyMode) {
 				return super.play(startTime, loops, sndTransform);
 			} else {
-				addEventListener(SampleDataEvent.SAMPLE_DATA, function():void{});
 				var channel:SoundChannel = new SoundChannel();
 				player.playingWavSounds.push(new WavSoundChannel(this, startTime, loops, channel));
 				return channel;
