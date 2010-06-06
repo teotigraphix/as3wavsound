@@ -148,7 +148,7 @@ package org.as3wavsound {
 				return super.play(startTime, loops, sndTransform);
 			} else {
 				addEventListener(SampleDataEvent.SAMPLE_DATA, function():void{});
-				var channel:SoundChannel = super.play(0, loops, sndTransform);
+				var channel:SoundChannel = new SoundChannel();
 				player.playingWavSounds.push(new WavSoundChannel(this, startTime, loops, channel));
 				return channel;
 			}

@@ -1,5 +1,6 @@
 package org.as3wavsound {
 	import flash.media.SoundChannel;
+	import flash.events.Event;
 	import org.as3wavsound.sazameki.core.AudioSamples;
 	import org.as3wavsound.WavSound;
 
@@ -92,19 +93,24 @@ package org.as3wavsound {
 			var sampleBufferRight:Vector.<Number> = sampleBuffer.right;
 			
 			// finally, mix the samples in the master sample buffer
-			for (var i:int = 0; i < sampleBufferLength; i++) {
-				if (!finished) {					
-					// write (transformed) samples to buffer
-					sampleBufferLeft[i] += samplesLeft[phase] * volumeLeft;
-					var channelValue:Number = ((needRightChannel && hasRightChannel) ? samplesRight[phase] : samplesLeft[phase]);
-					sampleBufferRight[i] += channelValue * volumeRight;
-					
-					// check playing and looping state
-					finished = ++phase >= samplesLength;
-					if (finished) {
-						phase = startPhase;
-						finished = loopsLeft-- == 0;
+			if (!finished) {
+				for (var i:int = 0; i < sampleBufferLength; i++) {
+					if (!finished) {					
+						// write (transformed) samples to buffer
+						sampleBufferLeft[i] += samplesLeft[phase] * volumeLeft;
+						var channelValue:Number = ((needRightChannel && hasRightChannel) ? samplesRight[phase] : samplesLeft[phase]);
+						sampleBufferRight[i] += channelValue * volumeRight;
+						
+						// check playing and looping state
+						if (++phase >= samplesLength) {
+							phase = startPhase;
+							finished = loopsLeft-- == 0;
+						}
 					}
+				}
+			
+				if (finished) {
+					_channel.dispatchEvent(new Event(Event.SOUND_COMPLETE));
 				}
 			}
 		}
