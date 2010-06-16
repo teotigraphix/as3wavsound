@@ -61,8 +61,8 @@ package org.as3wavsound {
 	 * 
 	 * @author b.bottema [Codemonkey]
 	 */
-	internal class WavSoundPlayer extends Sound {
-		private static const MAX_BUFFERSIZE:Number = 8192;
+	public class WavSoundPlayer extends Sound {
+		public static var MAX_BUFFERSIZE:Number = 8192;
 
 		// the master samples buffer in which all seperate Wavsounds are mixed into, always stereo at 44100Hz and bitrate 16
 		private const sampleBuffer:AudioSamples = new AudioSamples(new AudioSetting(), MAX_BUFFERSIZE);
@@ -116,7 +116,7 @@ package org.as3wavsound {
 		/**
 		 * Remove all playing channels that are associated with the given WavSound.
 		 */
-		public function stopAll(wavSound:WavSound):void {
+		internal function stopAll(wavSound:WavSound):void {
 			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
 				if (playingWavSound.wavSound == wavSound) {
 					playingWavSounds.splice(playingWavSounds.lastIndexOf(playingWavSound), 1);
@@ -127,7 +127,7 @@ package org.as3wavsound {
 		/**
 		 * Remove a spific currently playing channel.
 		 */
-		public function stop(channel:WavSoundChannel):void {
+		internal function stop(channel:WavSoundChannel):void {
 			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
 				if (playingWavSound == channel) {
 					playingWavSounds.splice(playingWavSounds.lastIndexOf(playingWavSound), 1);
@@ -135,7 +135,7 @@ package org.as3wavsound {
 			}
 		}
 		
-		public function get playingWavSounds():Vector.<WavSoundChannel> {
+		internal function get playingWavSounds():Vector.<WavSoundChannel> {
 			return _playingWavSounds;
 		}
 	}
