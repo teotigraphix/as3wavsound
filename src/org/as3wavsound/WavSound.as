@@ -107,7 +107,7 @@ package org.as3wavsound {
 		 * @param	wavData
 		 * @param	audioSettings
 		 */
-		public function load(wavData:ByteArray, audioSettings:AudioSetting = null): void {
+		internal function load(wavData:ByteArray, audioSettings:AudioSetting = null): void {
 			this._bytesTotal = wavData.length;
 			this._samples = new Wav().decode(wavData);
 			this._playbackSettings = (audioSettings != null) ? audioSettings : new AudioSetting();

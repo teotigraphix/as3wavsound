@@ -153,7 +153,7 @@ package org.as3wavsound {
 		}
 		
  	 	public function get position(): Number {
-			return phase;
+			return phase * _wavSound.length / _wavSound.samples.length;
 		}
 		
 		public function get soundTransform():SoundTransform {
