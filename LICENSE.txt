@@ -1,4 +1,4 @@
-﻿AS3 WavSound v0.6
+﻿AS3 WavSound v0.8
 
 --------------------------------------
 b.bottema [Codemonkey] -- WavSound Sound adaption
