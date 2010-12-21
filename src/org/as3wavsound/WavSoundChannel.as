@@ -64,7 +64,7 @@ package org.as3wavsound {
 		 */
 		internal function init(startTime:Number, loops:int):void {
 			var startPositionInMillis:Number = Math.floor(startTime);
-			var maxPositionInMillis:Number = Math.floor(length);
+			var maxPositionInMillis:Number = Math.floor(_wavSound.length);
 			if (startPositionInMillis > maxPositionInMillis) {
 				throw new Error("startTime greater than sound's length, max startTime is " + maxPositionInMillis);
 			}
