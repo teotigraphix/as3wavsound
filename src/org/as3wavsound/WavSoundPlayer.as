@@ -1,6 +1,9 @@
 package org.as3wavsound {
 	import flash.events.SampleDataEvent;
 	import flash.media.Sound;
+	import flash.media.SoundChannel;
+	import flash.media.SoundTransform;
+	import flash.net.URLRequest;
 	import flash.utils.ByteArray;
 	import org.as3wavsound.sazameki.core.AudioSamples;
 	import org.as3wavsound.sazameki.core.AudioSetting;
@@ -61,7 +64,7 @@ package org.as3wavsound {
 	 * 
 	 * @author b.bottema [Codemonkey]
 	 */
-	public class WavSoundPlayer extends Sound {
+	public class WavSoundPlayer {
 		public static var MAX_BUFFERSIZE:Number = 8192;
 
 		// the master samples buffer in which all seperate Wavsounds are mixed into, always stereo at 44100Hz and bitrate 16
@@ -111,6 +114,24 @@ package org.as3wavsound {
 				outputStream.writeFloat(samplesLeft[i]);
 				outputStream.writeFloat(samplesRight[i]);
 			}
+		}
+		
+		private function onSamplesMirrorCallback(event:SampleDataEvent):void {
+			// write all mixed samples to the sound's outputstream
+			var outputStream:ByteArray = event.data;
+			for (var i:int = 0; i < 2048; i++) {
+				outputStream.writeFloat(0);
+				outputStream.writeFloat(0);
+			}
+		}
+		
+		internal function play(sound:WavSound, startTime:Number, loops:int, sndTransform:SoundTransform):SoundChannel {			
+			var channel:SoundChannel = new SoundChannel();
+			if (sndTransform != null) {
+				channel.soundTransform = sndTransform;
+			}
+			playingWavSounds.push(new WavSoundChannel(sound, startTime, loops, channel));
+			return channel;
 		}
 		
 		/**

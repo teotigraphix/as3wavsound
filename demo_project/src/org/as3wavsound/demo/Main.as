@@ -1,4 +1,4 @@
-﻿package org.as3wavsound.demo
+package org.as3wavsound.demo
 {
 	import flash.display.Sprite;
 	import flash.events.Event;

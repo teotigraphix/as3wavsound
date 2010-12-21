@@ -146,12 +146,7 @@ package org.as3wavsound {
 			if (legacyMode) {
 				return super.play(startTime, loops, sndTransform);
 			} else {
-				var channel:SoundChannel = new SoundChannel();
-				if (sndTransform != null) {
-					channel.soundTransform = sndTransform;
-				}
-				player.playingWavSounds.push(new WavSoundChannel(this, startTime, loops, channel));
-				return channel;
+				return player.play(this, startTime, loops, sndTransform);
 			}
 		}
 		
