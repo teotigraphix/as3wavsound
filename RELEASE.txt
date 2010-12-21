@@ -1,0 +1,1 @@
+Small but important bugfix: 'soundtransform must not be null' error
