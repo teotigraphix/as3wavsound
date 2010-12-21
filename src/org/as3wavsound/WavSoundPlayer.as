@@ -64,13 +64,13 @@ package org.as3wavsound {
 	 * 
 	 * @author b.bottema [Codemonkey]
 	 */
-	public class WavSoundPlayer {
+	internal class WavSoundPlayer {
 		public static var MAX_BUFFERSIZE:Number = 8192;
 
 		// the master samples buffer in which all seperate Wavsounds are mixed into, always stereo at 44100Hz and bitrate 16
 		private const sampleBuffer:AudioSamples = new AudioSamples(new AudioSetting(), MAX_BUFFERSIZE);
 		// a list of all WavSound currenctly in playing mode
-		private const _playingWavSounds:Vector.<WavSoundChannel> = new Vector.<WavSoundChannel>();
+		private const playingWavSounds:Vector.<WavSoundChannel> = new Vector.<WavSoundChannel>();
 		// the singular playback SOund with which all other WavSounds are played back
 		private const player:Sound = configurePlayer();
 		
@@ -83,6 +83,27 @@ package org.as3wavsound {
 			player.addEventListener(SampleDataEvent.SAMPLE_DATA, onSamplesCallback);
 			player.play();
 			return player;
+		}
+		
+		/**
+		 * Creates WavSoundChannel and adds this to the list of playing currently playing (should be included in the master buffering process).
+		 * Also returns this instance for sound manipulation by the end-user (just like the traditional SoundChannel).
+		 */
+		internal function play(sound:WavSound, startTime:Number, loops:int, sndTransform:SoundTransform):WavSoundChannel {
+			var channel:WavSoundChannel = new WavSoundChannel(this, sound, startTime, loops, sndTransform);
+			playingWavSounds.push(channel);
+			return channel;
+		}
+		
+		/**
+		 * Remove a spific currently playing channel.
+		 */
+		internal function stop(channel:WavSoundChannel):void {
+			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
+				if (playingWavSound == channel) {
+					playingWavSounds.splice(playingWavSounds.lastIndexOf(playingWavSound), 1);
+				}
+			}
 		}
 		
 		/**
@@ -123,41 +144,6 @@ package org.as3wavsound {
 				outputStream.writeFloat(0);
 				outputStream.writeFloat(0);
 			}
-		}
-		
-		internal function play(sound:WavSound, startTime:Number, loops:int, sndTransform:SoundTransform):SoundChannel {			
-			var channel:SoundChannel = new SoundChannel();
-			if (sndTransform != null) {
-				channel.soundTransform = sndTransform;
-			}
-			playingWavSounds.push(new WavSoundChannel(sound, startTime, loops, channel));
-			return channel;
-		}
-		
-		/**
-		 * Remove all playing channels that are associated with the given WavSound.
-		 */
-		internal function stopAll(wavSound:WavSound):void {
-			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
-				if (playingWavSound.wavSound == wavSound) {
-					playingWavSounds.splice(playingWavSounds.lastIndexOf(playingWavSound), 1);
-				}
-			}
-		}
-		
-		/**
-		 * Remove a spific currently playing channel.
-		 */
-		internal function stop(channel:WavSoundChannel):void {
-			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
-				if (playingWavSound == channel) {
-					playingWavSounds.splice(playingWavSounds.lastIndexOf(playingWavSound), 1);
-				}
-			}
-		}
-		
-		internal function get playingWavSounds():Vector.<WavSoundChannel> {
-			return _playingWavSounds;
 		}
 	}
 }

@@ -1,6 +1,8 @@
 package org.as3wavsound {
+	import flash.events.EventDispatcher;
 	import flash.media.SoundChannel;
 	import flash.events.Event;
+	import flash.media.SoundTransform;
 	import org.as3wavsound.sazameki.core.AudioSamples;
 	import org.as3wavsound.WavSound;
 
@@ -12,18 +14,20 @@ package org.as3wavsound {
 	 * 
 	 * @author b.bottema [Codemonkey]
 	 */
-	internal class WavSoundChannel {
+	public class WavSoundChannel extends EventDispatcher {
 		
 		/*
 		 * creation-time information 
 		 */
 		
+		// the player to delegate play() stop() requests to
+		private var player:WavSoundPlayer;
+		
 		// a WavSound currently playing back on one or several channels
 		private var _wavSound:WavSound;
 		
-		// The channel that contains playback info for a single sound 'instance'.
-		// There can be multiple 'instances' of a WavSound, represented by SoundChannels.
-		private var _channel:SoundChannel;
+		// works the same as SoundChannel.soundTransform
+		private var _soundTransform:SoundTransform = new SoundTransform();
 		
 		/*
 		 * play-time information *per WavSound*
@@ -33,6 +37,10 @@ package org.as3wavsound {
 		private var startPhase:Number; 
 		// current phase of the sound, basically matches a single current sample frame for each WavSound
 		private var phase:Number = 0;
+		// the current avarage volume of samples buffered to the left audiochannel
+		private var _leftPeak:Number = 0;
+		// the current avarage volume of samples buffered to the right audiochannel
+		private var _rightPeak:Number = 0;
 		// how many loops we need to buffer
 		private var loopsLeft:Number;
 		// indicates if the phase has reached total sample count and no loops are left
@@ -41,9 +49,12 @@ package org.as3wavsound {
 		/**
 		 * Constructor: pre-calculates starting phase (and performs some validation for this).
 		 */
-		public function WavSoundChannel(wavSound:WavSound, startTime:Number, loops:int, channel:SoundChannel) {
+		public function WavSoundChannel(player:WavSoundPlayer, wavSound:WavSound, startTime:Number, loops:int, soundTransform:SoundTransform) {
+			this.player = player;
 			this._wavSound = wavSound;
-			this._channel = channel;
+			if (soundTransform != null) {
+				this._soundTransform = soundTransform;
+			}
 			init(startTime, loops);
 		}
 		
@@ -51,7 +62,7 @@ package org.as3wavsound {
 		 * Calculates and validates the starting time. Starting time in milliseconds is converted into 
 		 * sample position and then marked as starting phase.
 		 */
-		private function init(startTime:Number, loops:int):void {
+		internal function init(startTime:Number, loops:int):void {
 			var startPositionInMillis:Number = Math.floor(startTime);
 			var maxPositionInMillis:Number = Math.floor(length);
 			if (startPositionInMillis > maxPositionInMillis) {
@@ -60,6 +71,10 @@ package org.as3wavsound {
 			phase = startPhase = Math.floor(startPositionInMillis * _wavSound.samples.length / _wavSound.length);
 			finished = false;
 			loopsLeft = loops;
+		}
+		
+		public function stop():void {
+			player.stop(this);
 		}
 		
 		/**
@@ -74,11 +89,11 @@ package org.as3wavsound {
 		 * @param	soundTransform The soundtransform that belongs to a single channel being played 
 		 * 			(containing volume, panning etc.).
 		 */	
-		public function buffer(sampleBuffer:AudioSamples):void {
+		internal function buffer(sampleBuffer:AudioSamples):void {
 			// calculate volume and panning
-			var volume: Number = (_channel.soundTransform.volume / 1);
-			var volumeLeft: Number = volume * (1 - _channel.soundTransform.pan) / 2;
-			var volumeRight: Number = volume * (1 + _channel.soundTransform.pan) / 2;
+			var volume: Number = (_soundTransform.volume / 1);
+			var volumeLeft: Number = volume * (1 - _soundTransform.pan) / 2;
+			var volumeRight: Number = volume * (1 + _soundTransform.pan) / 2;
 			// channel settings
 			var needRightChannel:Boolean = _wavSound.playbackSettings.channels == 2;
 			var hasRightChannel:Boolean = _wavSound.samples.setting.channels == 2;
@@ -92,14 +107,21 @@ package org.as3wavsound {
 			var sampleBufferLeft:Vector.<Number> = sampleBuffer.left;
 			var sampleBufferRight:Vector.<Number> = sampleBuffer.right;
 			
+			var leftPeakRecord:Number = 0;
+			var rightPeakRecord:Number = 0;
+			
 			// finally, mix the samples in the master sample buffer
 			if (!finished) {
 				for (var i:int = 0; i < sampleBufferLength; i++) {
 					if (!finished) {					
 						// write (transformed) samples to buffer
-						sampleBufferLeft[i] += samplesLeft[phase] * volumeLeft;
+						var sampleLeft:Number = samplesLeft[phase] * volumeLeft;
+						sampleBufferLeft[i] += sampleLeft;
+						leftPeakRecord += sampleLeft;
 						var channelValue:Number = ((needRightChannel && hasRightChannel) ? samplesRight[phase] : samplesLeft[phase]);
-						sampleBufferRight[i] += channelValue * volumeRight;
+						var sampleRight:Number = channelValue * volumeRight;
+						sampleBufferRight[i] += sampleRight;
+						rightPeakRecord += sampleRight;
 						
 						// check playing and looping state
 						if (++phase >= samplesLength) {
@@ -110,13 +132,32 @@ package org.as3wavsound {
 				}
 			
 				if (finished) {
-					_channel.dispatchEvent(new Event(Event.SOUND_COMPLETE));
+					dispatchEvent(new Event(Event.SOUND_COMPLETE));
 				}
 			}
+			
+			_leftPeak = leftPeakRecord / sampleBufferLength;
+			_rightPeak = rightPeakRecord / sampleBufferLength
 		}
 		
-		public function get wavSound():WavSound {
+		internal function get wavSound():WavSound {
 			return _wavSound
+		}
+		
+		public function get leftPeak(): Number {
+			return _leftPeak;
+		}
+		
+ 	 	public function get rightPeak(): Number {
+			return _rightPeak;
+		}
+		
+ 	 	public function get position(): Number {
+			return phase;
+		}
+		
+		public function get soundTransform():SoundTransform {
+			return _soundTransform;
 		}
 	}
 }

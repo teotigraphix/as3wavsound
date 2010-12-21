@@ -74,10 +74,7 @@ package org.as3wavsound {
 	 * 
 	 * @author b.bottema [Codemonkey]
 	 */
-	public class WavSound extends Sound {
-		
-		// used to switch the runtime behavior of this Sound object, for backwards compatibility
-		private var legacyMode:Boolean;
+	public class WavSound {
 		
 		// the master Sound player, which mixes all playing WavSound samples on any given moment
 		private static const player:WavSoundPlayer = new WavSoundPlayer();
@@ -99,7 +96,7 @@ package org.as3wavsound {
 		 * 			sample rate and bit rate).
 		 */
 		public function WavSound(wavData:ByteArray, audioSettings:AudioSetting = null) {
-			loadWav(wavData, audioSettings);
+			load(wavData, audioSettings);
 		}
 
 		/**
@@ -110,24 +107,11 @@ package org.as3wavsound {
 		 * @param	wavData
 		 * @param	audioSettings
 		 */
-		public function loadWav(wavData:ByteArray, audioSettings:AudioSetting = null): void {
-			legacyMode = false;
+		public function load(wavData:ByteArray, audioSettings:AudioSetting = null): void {
 			this._bytesTotal = wavData.length;
 			this._samples = new Wav().decode(wavData);
 			this._playbackSettings = (audioSettings != null) ? audioSettings : new AudioSetting();
 			this._length = samples.length / samples.setting.sampleRate * 1000;
-		}
-
-		/**
-		 * Loads MP3 data.
-		 * 
-		 * Resets this WavSound and turns on legacy mode to act as if it were a basic Sound object.
-		 * Also stops all playing channels for this WavSound.
-		 */
-		public override function load(stream:URLRequest, context:SoundLoaderContext = null) : void {
-			legacyMode = true;
-			player.stopAll(this);
-			super.load(stream, context);
 		}
 
 		/**
@@ -142,57 +126,49 @@ package org.as3wavsound {
 		 * @param	sndTransform An optional soundtransform to apply for playback that controls volume and panning.
 		 * @return The SoundChannel used for playing back the sound.
 		 */
-		public override function play(startTime:Number = 0, loops:int = 0, sndTransform:SoundTransform = null) : SoundChannel {
-			if (legacyMode) {
-				return super.play(startTime, loops, sndTransform);
-			} else {
-				return player.play(this, startTime, loops, sndTransform);
-			}
+		public function play(startTime:Number = 0, loops:int = 0, sndTransform:SoundTransform = null): WavSoundChannel {
+			return player.play(this, startTime, loops, sndTransform);
 		}
 		
 		/**
 		 * No idea if this works. Alpha state. Read up on Sound.extract():
 		 * http://help.adobe.com/en_US/FlashPlatform/reference/actionscript/3/flash/media/Sound.html#extract()
 		 */
-		public override function extract(target:ByteArray, length:Number, startPosition:Number = -1): Number {
-			if (legacyMode) {
-				return super.extract(target, length, startPosition);
-			} else {
-				var start:Number = Math.max(startPosition, 0);
-				var end:Number = Math.min(length, samples.length);
-				
-				for (var i:Number = start; i < end; i++) {
+		public function extract(target:ByteArray, length:Number, startPosition:Number = -1): Number {
+			var start:Number = Math.max(startPosition, 0);
+			var end:Number = Math.min(length, samples.length);
+			
+			for (var i:Number = start; i < end; i++) {
+				target.writeFloat(samples.left[i]);
+				if (samples.setting.channels == 2) {
+					target.writeFloat(samples.right[i]);
+				} else {
 					target.writeFloat(samples.left[i]);
-					if (samples.setting.channels == 2) {
-						target.writeFloat(samples.right[i]);
-					} else {
-						target.writeFloat(samples.left[i]);
-					}
 				}
-				
-				return samples.length;
 			}
+			
+			return samples.length;
 		}
 		
 		/**
 		 * Returns the total bytes of the wavData the current WavSound was created with.
 		 */
-		public override function get bytesLoaded () : uint {
-			return (legacyMode) ? super.bytesLoaded : _bytesTotal;
+		public function get bytesLoaded () : uint {
+			return _bytesTotal;
 		}
 
 		/**
 		 * Returns the total bytes of the wavData the current WavSound was created with.
 		 */
-		public override function get bytesTotal () : int {
-			return (legacyMode) ? super.bytesTotal : _bytesTotal;
+		public function get bytesTotal () : int {
+			return _bytesTotal;
 		}
 
 		/**
 		 * Returns the total length of the sound in milliseconds.
 		 */
-		public override function get length() : Number {
-			return (legacyMode) ? super.length : _length;
+		public function get length() : Number {
+			return _length;
 		}
 		
 		internal function get samples():AudioSamples {
