@@ -2,6 +2,7 @@ package org.as3wavsound.sazameki.format.riff  {
 	
 	/**
 	 * ...
+	 *
 	 * @author Takaaki Yamazaki(zk design), 
 	 * @author Benny Bottema (modified, optimized and cleaned up code)
 	 */

@@ -106,12 +106,13 @@ package org.as3wavsound {
 		 * Finally calculates the length of the sound in milliseconds.
 		 * 
 		 * @param	wavData The byte array that is the embedded .was file (octet-stream).
-		 * @param	audioSettings Optional settings for playback.
+		 * @param	audioSettings Optional settings for playback (samplerate will enforced 
+		 * 							if it differs from the .wav header data or header is missing).
 		 * @see Wav#decode(ByteArray)
 		 */
 		internal function load(wavData:ByteArray, audioSettings:AudioSetting = null): void {
 			this._bytesTotal = wavData.length;
-			this._samples = new Wav().decode(wavData);
+			this._samples = new Wav().decode(wavData, audioSettings);
 			this._playbackSettings = (audioSettings != null) ? audioSettings : new AudioSetting();
 			this._length = samples.length / samples.setting.sampleRate * 1000;
 		}

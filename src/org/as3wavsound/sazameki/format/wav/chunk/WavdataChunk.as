@@ -83,7 +83,7 @@ package org.as3wavsound.sazameki.format.wav.chunk  {
 			return bytes;
 		}
 		
-		public function decodeData(bytes:ByteArray,setting:AudioSetting):AudioSamples {
+		public function decodeData(bytes:ByteArray, setting:AudioSetting):AudioSamples {
 			bytes.position = 0;
 			bytes.endian = ENDIAN;
 			
