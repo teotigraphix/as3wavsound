@@ -6,7 +6,9 @@ package org.as3wavsound.sazameki.format.wav.chunk  {
 	
 	/**
 	 * ...
-	 * @author Takaaki Yamazaki(zk design), modified by b.bottema [Codemonkey]
+	 * 
+	 * @author Takaaki Yamazaki(zk design), 
+	 * @author Benny Bottema (modified, optimized and cleaned up code)
 	 */
 	public class WavdataChunk extends Chunk {
 		private var _samples:AudioSamples;

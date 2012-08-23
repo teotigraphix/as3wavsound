@@ -11,7 +11,8 @@ package org.as3wavsound.sazameki.format.wav {
 	/**
 	 * The WAVE decoder used for playing back wav files.
 	 * 
-	 * @author Takaaki Yamazaki(zk design), modified by b.bottema [Codemonkey]
+	 * @author Takaaki Yamazaki(zk design), 
+	 * @author Benny Bottema (modified, optimized and cleaned up code)
 	 */
 	public class Wav extends RIFF {
 

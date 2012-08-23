@@ -4,7 +4,8 @@ package org.as3wavsound.sazameki.core {
 	 * Contains a sound's playback configuration, such as mono / stereo, 
 	 * sample rate and bit rate.
 	 * 
-	 * @author Takaaki Yamazaki(zk design), modified by b.bottema [Codemonkey]
+	 * @author Takaaki Yamazaki(zk design), 
+	 * @author Benny Bottema (modified, optimized and cleaned up code)
 	 */
 	public class AudioSetting {
 		// 1 or 2

@@ -1,18 +1,6 @@
-package org.as3wavsound {
-	import flash.events.SampleDataEvent;
-	import flash.media.Sound;
-	import flash.media.SoundChannel;
-	import flash.media.SoundLoaderContext;
-	import flash.media.SoundTransform;
-	import flash.net.URLRequest;
-	import flash.utils.ByteArray;
-	import org.as3wavsound.sazameki.core.AudioSamples;
-	import org.as3wavsound.sazameki.core.AudioSetting;
-	import org.as3wavsound.sazameki.format.wav.Wav;
-	
 	/* 
 	 * --------------------------------------
-	 * b.bottema [Codemonkey] -- WavSound Sound adaption
+	 * Benny Bottema -- WavSound Sound adaption
 	 * http://blog.projectnibble.org/
 	 * --------------------------------------
 	 * sazameki -- audio manipulating library
@@ -20,7 +8,7 @@ package org.as3wavsound {
 	 * --------------------------------------
 	 * 
 	 * - developed by:
-	 * 						Benny Bottema (Codemonkey)
+	 * 						Benny Bottema
 	 * 						blog.projectnibble.org
 	 *   hosted by: 
 	 *  					Google Code (code.google.com)
@@ -57,11 +45,22 @@ package org.as3wavsound {
 	 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 	 * THE SOFTWARE.
 	 */
+package org.as3wavsound {
+	import flash.media.SoundTransform;
+	import flash.utils.ByteArray;
+	import org.as3wavsound.sazameki.core.AudioSamples;
+	import org.as3wavsound.sazameki.core.AudioSetting;
+	import org.as3wavsound.sazameki.format.wav.Wav;
 	
 	/**
 	 * Sound extension that directly plays WAVE data. Also backwards compatible with 
-	 * MP3's played through the load() method.
+	 * MP3's played through the load() function. This class acts as facade to loading, 
+	 * extracting, decoding and playing wav sound data and represents a single sound.
+	 * 	  
+	 * This class is analog to Adobe's Sound class and is designed to function the same 
+	 * way.
 	 * 
+	 * Usage:	 
 	 * Simply embed .wav files as you would mp3's and play with this Sound class.
 	 * Make sure you provide mimetype 'application/octet-stream' when embedding to 
 	 * ensure Flash embeds the data as ByteArray.
@@ -69,10 +68,10 @@ package org.as3wavsound {
 	 * Example:
 	 * [Embed(source = "drumloop.wav", mimeType = "application/octet-stream")]
 	 * public const DrumLoop:Class;
-	 * public const rain:Sound = new WavSound(new DrumLoop() as ByteArray);
+	 * public const rain:WavSound = new WavSound(new DrumLoop() as ByteArray);
 	 * 
 	 * 
-	 * @author b.bottema [Codemonkey]
+	 * @author Benny Bottema
 	 */
 	public class WavSound {
 		
@@ -89,7 +88,10 @@ package org.as3wavsound {
 		private var _length:Number;
 		
 		/**
-		 * Constructor: loads wavdata using loadWav().
+		 * Constructor: loads wavdata using load().
+		 * 
+		 * loads WAVE data and decodes it into playable samples. Finally calculates 
+		 * the length of the sound in milliseconds.
 		 * 
 		 * @param	wavData A ByteArray containing uncmopressed wav data.
 		 * @param	audioSettings An optional playback configuration (mono/stereo, 
@@ -100,12 +102,12 @@ package org.as3wavsound {
 		}
 
 		/**
-		 * Loads WAVE data.
+		 * Key function: loads WAVE data and decodes it into playable samples. 
+		 * Finally calculates the length of the sound in milliseconds.
 		 * 
-		 * Resets this WavSound and turns off legacy mode to act as a WavSound object.
-		 * 
-		 * @param	wavData
-		 * @param	audioSettings
+		 * @param	wavData The byte array that is the embedded .was file (octet-stream).
+		 * @param	audioSettings Optional settings for playback.
+		 * @see Wav#decode(ByteArray)
 		 */
 		internal function load(wavData:ByteArray, audioSettings:AudioSetting = null): void {
 			this._bytesTotal = wavData.length;
@@ -115,6 +117,8 @@ package org.as3wavsound {
 		}
 
 		/**
+		 * See Adobe's Sound.play(): http://help.adobe.com/en_US/FlashPlatform/reference/actionscript/3/flash/media/Sound.html#play().
+		 *		 		
 		 * Playback function that performs the following tasks:
 		 * 
 		 * - calculates the startingPhase, bases on startTime in ms.
@@ -122,9 +126,9 @@ package org.as3wavsound {
 		 * - adds the playing channel in combination with its originating WavSound to the playingWavSounds
 		 * 
 		 * @param	startTime The starting time in milliseconds, applies to each loop (as with regular MP3 Sounds).
-		 * @param	loops The number of loops to take in *addition* to the default playback (loops == 2 -> 3 playthroughs).
+		 * @param	loops The number of loops to take in *addition* to the default playback (loops == 2 means 3 playthroughs).
 		 * @param	sndTransform An optional soundtransform to apply for playback that controls volume and panning.
-		 * @return The SoundChannel used for playing back the sound.
+		 * @return The SoundChannel used for playing back the sound (and stopping the sound).
 		 */
 		public function play(startTime:Number = 0, loops:int = 0, sndTransform:SoundTransform = null): WavSoundChannel {
 			return player.play(this, startTime, loops, sndTransform);
@@ -133,6 +137,9 @@ package org.as3wavsound {
 		/**
 		 * No idea if this works. Alpha state. Read up on Sound.extract():
 		 * http://help.adobe.com/en_US/FlashPlatform/reference/actionscript/3/flash/media/Sound.html#extract()
+		 * 
+		 * Apparently, some people have used this succesfully, see comment 1 on Issue 11: 
+		 * http://code.google.com/p/as3wavsound/issues/detail?id=11#c1		 		 
 		 */
 		public function extract(target:ByteArray, length:Number, startPosition:Number = -1): Number {
 			var start:Number = Math.max(startPosition, 0);
@@ -151,14 +158,22 @@ package org.as3wavsound {
 		}
 		
 		/**
-		 * Returns the total bytes of the wavData the current WavSound was created with.
+		 * Returns the total bytes of the wavData a WavSound was created with.
+		 * 
+		 * Note: 
+		 *	This function is probably legacy, since we're not extending Adobe's 
+		 *	Sound anymore (backwards compatibility was dropped in v0.7.
 		 */
 		public function get bytesLoaded () : uint {
 			return _bytesTotal;
 		}
 
 		/**
-		 * Returns the total bytes of the wavData the current WavSound was created with.
+		 * Returns the total bytes of the wavData a WavSound was created with.
+		 * 
+		 * Note: 
+		 *	This function is probably legacy, since we're not extending Adobe's 
+		 *	Sound anymore (backwards compatibility was dropped in v0.7.
 		 */
 		public function get bytesTotal () : int {
 			return _bytesTotal;
@@ -175,6 +190,9 @@ package org.as3wavsound {
 			return _samples;
 		}
 		
+		/**
+		 * _playbackSettings is set when the load() function is called.
+		 */
 		internal function get playbackSettings():AudioSetting {
 			return _playbackSettings;
 		}

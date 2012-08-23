@@ -1,3 +1,50 @@
+	/* 
+	 * --------------------------------------
+	 * Benny Bottema -- WavSound Sound adaption
+	 * http://blog.projectnibble.org/
+	 * --------------------------------------
+	 * sazameki -- audio manipulating library
+	 * http://sazameki.org/
+	 * --------------------------------------
+	 * 
+	 * - developed by:
+	 * 						Benny Bottema
+	 * 						blog.projectnibble.org
+	 *   hosted by: 
+	 *  					Google Code (code.google.com)
+	 * 						code.google.com/p/as3wavsound/
+	 * 
+	 * - audio library in its original state developed by:
+	 * 						Takaaki Yamazaki
+	 * 						www.zkdesign.jp
+	 *   hosted by: 
+	 *  					Spark project (www.libspark.org)
+	 * 						www.libspark.org/svn/as3/sazameki/branches/fp10/
+	 */
+	
+	/*
+	 * Licensed under the MIT License
+	 * 
+	 * Copyright (c) 2008 Takaaki Yamazaki
+	 * 
+	 * Permission is hereby granted, free of charge, to any person obtaining a copy
+	 * of this software and associated documentation files (the "Software"), to deal
+	 * in the Software without restriction, including without limitation the rights
+	 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	 * copies of the Software, and to permit persons to whom the Software is
+	 * furnished to do so, subject to the following conditions:
+	 * 
+	 * The above copyright notice and this permission notice shall be included in
+	 * all copies or substantial portions of the Software.
+	 * 
+	 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	 * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+	 * THE SOFTWARE.
+	 */
 package org.as3wavsound {
 	import flash.events.EventDispatcher;
 	import flash.media.SoundChannel;
@@ -10,9 +57,18 @@ package org.as3wavsound {
 	 * Used to keep track of open channels during playback. Each channel represents
 	 * an 'instance' of a sound and so each channel is responsible for its own mixing.
 	 * 
+	 * The WavSound class uses the WavSoundPlayer to play instances of itself and 
+	 * returns the WavSoundChannel returned by the player.
+	 * 
+	 * Also, the WavSoundPlayer uses the buffer() function to make the playing WavSoundChannel 
+	 * mix its own samples into the master buffer.
+	 * 
+	 * Dispatches the Event.SOUND_COMPLETE event when the last sample has been mixed 
+	 * into the master buffer.
+	 *	 	 
 	 * Also see buffer().
 	 * 
-	 * @author b.bottema [Codemonkey]
+	 * @author Benny Bottema
 	 */
 	public class WavSoundChannel extends EventDispatcher {
 		
@@ -20,17 +76,18 @@ package org.as3wavsound {
 		 * creation-time information 
 		 */
 		
-		// the player to delegate play() stop() requests to
+		// The player to delegate play() stop() requests to.
 		private var player:WavSoundPlayer;
 		
-		// a WavSound currently playing back on one or several channels
+		// a WavSound currently playing back on this channel instance 
+		// (there can be mutliple instances with the same WavSound).
 		private var _wavSound:WavSound;
 		
-		// works the same as SoundChannel.soundTransform
+		// works the same as Adobe's SoundChannel.soundTransform
 		private var _soundTransform:SoundTransform = new SoundTransform();
 		
 		/*
-		 * play-time information *per WavSound*
+		 * play-time information *per WavSound instance*
 		 */
 		
 		// starting phase if not at the beginning, made global to avoid recalculating all the time
@@ -47,7 +104,7 @@ package org.as3wavsound {
 		private var finished:Boolean;
 		
 		/**
-		 * Constructor: pre-calculates starting phase (and performs some validation for this).
+		 * Constructor: pre-calculates starting phase (and performs some validation for this), see init().
 		 */
 		public function WavSoundChannel(player:WavSoundPlayer, wavSound:WavSound, startTime:Number, loops:int, soundTransform:SoundTransform) {
 			this.player = player;
@@ -61,6 +118,8 @@ package org.as3wavsound {
 		/**
 		 * Calculates and validates the starting time. Starting time in milliseconds is converted into 
 		 * sample position and then marked as starting phase.
+		 * 
+		 * Also resets finished state and sets 'loopsLeft' equal to the given 'loops' value.
 		 */
 		internal function init(startTime:Number, loops:int):void {
 			var startPositionInMillis:Number = Math.floor(startTime);
@@ -73,16 +132,22 @@ package org.as3wavsound {
 			loopsLeft = loops;
 		}
 		
+		/**
+		 * Tells the WavsoundPlayer to stop this specific SoundWavChannel instance.
+		 */		
 		public function stop():void {
 			player.stop(this);
 		}
 		
 		/**
-		 * Fills a target samplebuffer with optionally transformed samples from the current 
-		 * WavSound instance (which is the current channel).
+		 * Called from WavSoundPlayer when the player is ready to mix new samples into the master 
+		 * sample buffer.
+		 * 		 		
+		 * Fills a target samplebuffer with (optionally transformed) samples from the current
+		 * WavSoundChannel instance.
 		 * 
-		 * Keeps filling the buffer for each loop the sound should be mixed in the target buffer.
-		 * When the buffer is full, phase and loopsLeft keep track of how which and many samples 
+		 * Keeps filling the buffer until the last samples are buffered or until the buffersize is 
+		 * reached. When the buffer is full, phase and loopsLeft keep track of how which samples 
 		 * still need to be buffered in the next buffering cycle (when this method is called again).
 		 * 
 		 * @param	sampleBuffer The target buffer to mix in the current (transformed) samples.
@@ -140,10 +205,6 @@ package org.as3wavsound {
 			_rightPeak = rightPeakRecord / sampleBufferLength
 		}
 		
-		internal function get wavSound():WavSound {
-			return _wavSound
-		}
-		
 		public function get leftPeak(): Number {
 			return _leftPeak;
 		}
@@ -152,6 +213,11 @@ package org.as3wavsound {
 			return _rightPeak;
 		}
 		
+		/**
+		 * Returns the current position in milliseconds: 
+		 * 
+		 * phase * wavSound.length / wavSound.samples.length
+		 */		 		
  	 	public function get position(): Number {
 			return phase * _wavSound.length / _wavSound.samples.length;
 		}

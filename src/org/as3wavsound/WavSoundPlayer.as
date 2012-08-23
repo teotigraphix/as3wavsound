@@ -1,17 +1,6 @@
-package org.as3wavsound {
-	import flash.events.SampleDataEvent;
-	import flash.media.Sound;
-	import flash.media.SoundChannel;
-	import flash.media.SoundTransform;
-	import flash.net.URLRequest;
-	import flash.utils.ByteArray;
-	import org.as3wavsound.sazameki.core.AudioSamples;
-	import org.as3wavsound.sazameki.core.AudioSetting;
-	import org.as3wavsound.WavSoundChannel;
-	
 	/* 
 	 * --------------------------------------
-	 * b.bottema [Codemonkey] -- WavSound Sound adaption
+	 * Benny Bottema -- WavSound Sound adaption
 	 * http://blog.projectnibble.org/
 	 * --------------------------------------
 	 * sazameki -- audio manipulating library
@@ -19,7 +8,7 @@ package org.as3wavsound {
 	 * --------------------------------------
 	 * 
 	 * - developed by:
-	 * 						Benny Bottema (Codemonkey)
+	 * 						Benny Bottema
 	 * 						blog.projectnibble.org
 	 *   hosted by: 
 	 *  					Google Code (code.google.com)
@@ -56,27 +45,51 @@ package org.as3wavsound {
 	 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 	 * THE SOFTWARE.
 	 */
+package org.as3wavsound {
+	import flash.events.SampleDataEvent;
+	import flash.media.Sound;
+	import flash.media.SoundChannel;
+	import flash.media.SoundTransform;
+	import flash.net.URLRequest;
+	import flash.utils.ByteArray;
+	import org.as3wavsound.sazameki.core.AudioSamples;
+	import org.as3wavsound.sazameki.core.AudioSetting;
+	import org.as3wavsound.WavSoundChannel;
 	
 	/**
-	 * Playback utility class contains a singular Sound for playback 
-	 * and sample mixing.
+	 * This player is used by WavSound instances to relay play() calls to and 
+	 * return the resulting WavSoundChannel instances.
+	 * 	 
+	 * This player is used by WavSoundChannel instances to relay stop() calls to.
 	 * 
+	 * This player contains a single Sound object which acts as the master buffer in which 
+	 * all playing sounds are mixed to. This is done to reduce cpu / memory footprint. The
+	 * player will loop through all playing WavSoundChannel instances and call 
+	 * buffer(masterSampleBuffer) function on each, before writing the end result to the 
+	 * sound card's outputstream.
 	 * 
-	 * @author b.bottema [Codemonkey]
+	 * @author Benny Bottema
 	 */
 	internal class WavSoundPlayer {
+		// The size of the master sample buffer used for playback.
+		// Too small: the sound will have a jittery playback.
+		// Too big: the sound will have high latencies (loading, stopping, playing, etc.). 
 		public static var MAX_BUFFERSIZE:Number = 8192;
 
 		// the master samples buffer in which all seperate Wavsounds are mixed into, always stereo at 44100Hz and bitrate 16
 		private const sampleBuffer:AudioSamples = new AudioSamples(new AudioSetting(), MAX_BUFFERSIZE);
 		// a list of all WavSound currenctly in playing mode
 		private const playingWavSounds:Vector.<WavSoundChannel> = new Vector.<WavSoundChannel>();
-		// the singular playback SOund with which all other WavSounds are played back
+		
+		// the singular playback Sound with which all other WavSounds are played back
 		private const player:Sound = configurePlayer();
 		
 		/**
-		 * Static initializer: creates, configures and run the singular sound player. 
-		 * Until play() has been called on a WavSound, nothing is audible.
+		 * Static initializer: creates, configures and a sound player using the 'sample 
+		 * data event technique'. Until play() has been called on a WavSound, nothing is 
+		 * audible, because playingWavSounds will still be empty.
+		 * 
+		 * Also see: http://help.adobe.com/en_US/FlashPlatform/reference/actionscript/3/flash/events/SampleDataEvent.html
 		 */
 		private function configurePlayer():Sound {
 			var player:Sound = new Sound();
@@ -86,8 +99,11 @@ package org.as3wavsound {
 		}
 		
 		/**
-		 * Creates WavSoundChannel and adds this to the list of playing currently playing (should be included in the master buffering process).
-		 * Also returns this instance for sound manipulation by the end-user (just like the traditional SoundChannel).
+		 * Creates WavSoundChannel and adds it to the list of currently playing channels 
+		 * (which are mixed into the master sample buffer).
+		 * 
+		 * This function is called by WavSound instances which returns the new WavSoundChannel 
+		 * instance to the user. 
 		 */
 		internal function play(sound:WavSound, startTime:Number, loops:int, sndTransform:SoundTransform):WavSoundChannel {
 			var channel:WavSoundChannel = new WavSoundChannel(this, sound, startTime, loops, sndTransform);
@@ -96,7 +112,8 @@ package org.as3wavsound {
 		}
 		
 		/**
-		 * Remove a spific currently playing channel.
+		 * Remove a specific currently playing channel, so that its samples won't be 
+		 * mixed to the master sample buffer anymore and therefor playback will stop.
 		 */
 		internal function stop(channel:WavSoundChannel):void {
 			for each (var playingWavSound:WavSoundChannel in playingWavSounds) {
@@ -107,13 +124,16 @@ package org.as3wavsound {
 		}
 		
 		/**
-		 * The heartbeat of the WavSound approach.
-		 * Invoked by the player appointed Sound object.
+		 * The heartbeat of the WavSound approach, invoked by the master Sound object.
 		 * 
-		 * Together with this callback all WavSound instances stored in the list
-		 * playingWavSounds are mixed together and then written to the outputstream 
+		 * This function handles the SampleDataEvent to mix all playing sounds in playingWavSounds 
+		 * into the Sound's buffer. For each playing WavSoundChannel instance, the player will call 
+		 * the channel's buffer() function to have it mix itself into the master sample buffer.
+		 * Finally, the resulting master buffer is written to the event's output stream.
 		 * 
-		 * @param	event Contains the outputstream to mix sound samples into.
+		 * Also see: http://help.adobe.com/en_US/FlashPlatform/reference/actionscript/3/flash/events/SampleDataEvent.html
+		 * 
+		 * @param event Contains the soundcard outputstream to mix sound samples into.
 		 */
 		private function onSamplesCallback(event:SampleDataEvent):void {
 			// clear the buffer
@@ -134,15 +154,6 @@ package org.as3wavsound {
 			for (var i:int = 0; i < samplesLength; i++) {
 				outputStream.writeFloat(samplesLeft[i]);
 				outputStream.writeFloat(samplesRight[i]);
-			}
-		}
-		
-		private function onSamplesMirrorCallback(event:SampleDataEvent):void {
-			// write all mixed samples to the sound's outputstream
-			var outputStream:ByteArray = event.data;
-			for (var i:int = 0; i < 2048; i++) {
-				outputStream.writeFloat(0);
-				outputStream.writeFloat(0);
 			}
 		}
 	}

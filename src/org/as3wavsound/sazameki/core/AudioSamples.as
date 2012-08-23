@@ -7,7 +7,8 @@ package org.as3wavsound.sazameki.core {
 	 * Also contains a reference to an AudioSetting instance associated by 
 	 * this samples container.
 	 * 
-	 * @author Takaaki Yamazaki(zk design), modified by b.bottema [Codemonkey]
+	 * @author Takaaki Yamazaki(zk design), 
+	 * @author Benny Bottema (modified, optimized and cleaned up code)
 	 */
 	public class AudioSamples {
 		public var _left:Vector.<Number>;
