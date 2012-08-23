@@ -1,3 +1,8 @@
+v0.9 (unreleased): 
+
+- fixed chipmunk playback bug for soundfiles with sample rate < 44khz, by upsampling to 44khz (thanks Simion Medvedi!)
+
+
 v0.8:
 
 - fixed position bug: now returns milliseconds instead of current sample number

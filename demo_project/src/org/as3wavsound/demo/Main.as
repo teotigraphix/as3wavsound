@@ -9,7 +9,7 @@ package org.as3wavsound.demo
 	
 	/**
 	 * ...
-	 * @author b.bottema [Codemonkey]
+	 * @author Benny Bottema
 	 */
 	public class Main extends Sprite  {
 		

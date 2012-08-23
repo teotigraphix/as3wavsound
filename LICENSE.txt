@@ -1,7 +1,7 @@
-﻿AS3 WavSound v0.8
+AS3 WavSound v0.8
 
 --------------------------------------
-b.bottema [Codemonkey] -- WavSound Sound adaption
+Benny Bottema -- WavSound Sound adaption
 http://blog.projectnibble.org/
 --------------------------------------
 sazameki -- audio manipulating library
@@ -9,7 +9,7 @@ http://sazameki.org/
 --------------------------------------
 
 - developed by:
-			Benny Bottema (Codemonkey)
+			Benny Bottema
 			blog.projectnibble.org
   hosted by:
  			Google Code (code.google.com)
