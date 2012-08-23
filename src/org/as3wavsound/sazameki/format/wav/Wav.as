@@ -56,7 +56,7 @@ package org.as3wavsound.sazameki.format.wav {
 		/**
 		 * Resamples the given audio samples from a given sample rate to a target sample rate (or default 44100).
 		 * 
-		 * @author Simion Medvedi (medvedisimion@gmail.com)
+		 * @author "Slow Burnaz" (slowburnaz@gmail.com), Simion Medvedi (medvedisimion@gmail.com)
 		 * @author Benny Bottema (sanitized code and added support for stereo resampling)
 		 */
 		private function resampleAudioSamples(data:AudioSamples, sourceRate:int, targetRate:int = 44100):AudioSamples {
@@ -75,7 +75,7 @@ package org.as3wavsound.sazameki.format.wav {
 		/**
 		 * Resamples the given audio samples from a given sample rate to a target sample rate (or default 44100).
 		 * 
-		 * @author Simion Medvedi (medvedisimion@gmail.com)
+		 * @author "Slow Burnaz" (slowburnaz@gmail.com), Simion Medvedi (medvedisimion@gmail.com)
 		 * @author Benny Bottema (sanitized code)
 		 */
 		private function resampleSamples(sourceSamples:Vector.<Number>, targetSamples:Vector.<Number>, newSize:int, sourceRate:int, targetRate:int = 44100):void {
