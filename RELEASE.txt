@@ -1,4 +1,4 @@
-v0.9 (unreleased): 
+v0.9:
 
 - fixed chipmunk playback bug for soundfiles with sample rate < 44khz, by upsampling to 44khz (thanks Simion Medvedi!)
 
