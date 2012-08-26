@@ -104,8 +104,8 @@ package org.as3wavsound.sazameki.format.wav.chunk  {
 				} else {
 					for (i = 0; i < length; i++)
 					{
-						left[i] = bytes.readByte() / 255;
-						right[i] = bytes.readByte() / 255;
+						left[i] = bytes.readUnsignedByte() / 127.5 - 1;
+						right[i] = bytes.readUnsignedByte() / 127.5 - 1;
 					}
 				}
 			} else {
@@ -116,7 +116,7 @@ package org.as3wavsound.sazameki.format.wav.chunk  {
 					}
 				} else {
 					for (i = 0; i < length; i++) {
-						left[i] = bytes.readByte() / 255;
+						left[i] = bytes.readUnsignedByte() / 127.5 - 1;
 					}
 				}
 			}
