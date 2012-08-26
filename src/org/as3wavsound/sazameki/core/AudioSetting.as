@@ -46,5 +46,9 @@ package org.as3wavsound.sazameki.core {
 		public function get bitRate():uint{
 			return _bitRate;
 		}
+		
+		public function toString():String{
+			return "[Channels:"+_channels+" SampleRate:"+_sampleRate+" BitRate:"+_bitRate+"]";
+		}
 	}	
 }
