@@ -5,7 +5,7 @@ v1.0 (unrelease):
 
 v0.9:
 
-- fixed chipmunk playback bug for soundfiles with sample rate < 44khz, by upsampling to 44khz (thanks "Slow Burnaz" and Simion Medvedi!)
+- fixed Issue 7, chipmunk playback for soundfiles with sample rate < 44khz, by upsampling to 44khz (thanks "Slow Burnaz" and Simion Medvedi!)
 
 
 v0.8:
