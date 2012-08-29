@@ -224,13 +224,13 @@ package org.as3wavsound {
  	 	public function get position(): Number {
 			return phase * _wavSound.length / _wavSound.samples.length;
 		}
-		
+
+		/**
+		 * Returns the soundTransform used during sample buffering. Can be modified to
+		 * influence sound in near real-time (such as volume, panning, etc.)
+		 */
 		public function get soundTransform():SoundTransform {
 			return _soundTransform;
-		}
-		
-		public function set soundTransform(transform:SoundTransform):void {
-			_soundTransform = transform;
 		}
 	}
 }
