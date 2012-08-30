@@ -63,8 +63,9 @@ package org.as3wavsound.sazameki.format.riff {
 
 				var tmpByte:ByteArray = new ByteArray();
 				bytes.readBytes(tmpByte, 0, current);
-
-				if (current % 2 == 1) {
+				
+				if (current % 2 == 1 && bytes.position < bytes.length) {
+					// move read position ahead to even byte boundary
 					bytes.readByte();
 				}
 				obj[currentName] = tmpByte;
