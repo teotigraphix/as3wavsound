@@ -19,9 +19,10 @@ package org.as3wavsound.sazameki.core {
 		 * Constructor: performs some validations on the values being passed in.
 		 */
 		public function AudioSetting(channels:uint = 2, sampleRate:uint = 44100, bitRate:uint = 16) {
-			if (sampleRate != 44100 && sampleRate != 22050 && sampleRate != 11025) {
-				throw new Error("bad sample rate. sample rate must be 44100, 22050 or 11025");
+			if (new Array(8000, 11025, 22050, 44100).indexOf(sampleRate) == -1) {
+				throw new Error("bad sample rate. sample rate must be 8000, 11025, 22050, or 44100");
 			}
+			
 			if (channels != 1 && channels != 2) {
 				throw new Error("channels must be 1 or 2");
 			}
