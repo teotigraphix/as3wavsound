@@ -2,6 +2,7 @@ v1.0 (unrelease):
 
 - fixed Issue 13, 8-bit decoder bug
 - fixed Issue 15, odd-length WAV file decoder bug
+- fixed Issue 14, adding support for 8khz sample rate
 
 
 v0.9:
