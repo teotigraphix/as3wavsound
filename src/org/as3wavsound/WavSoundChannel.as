@@ -232,5 +232,12 @@ package org.as3wavsound {
 		public function get soundTransform():SoundTransform {
 			return _soundTransform;
 		}
+
+		/**
+		 * Replaces the current SoundTransform. Added to match Adobe's SoundChannel API.
+		 */
+		public function set soundTransform(transform:SoundTransform):void {
+			_soundTransform = transform;
+		}
 	}
 }
