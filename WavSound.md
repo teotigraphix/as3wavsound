@@ -1,0 +1,3 @@
+WavSound is the class in the AWS library that encapsulates the playback API just as Adobe's [Sound](http://www.adobe.com/livedocs/flash/9.0/ActionScriptLangRefV3/flash/media/Sound.html) class does. It supports all methods the standard Sound class does. On calling `.play()` a WavSoundChannel object is returned for runtime playback operations which has the same API as Adobe's [SoundChannel](http://www.adobe.com/livedocs/flash/9.0/ActionScriptLangRefV3/flash/media/SoundChannel.html).
+
+[back](Documentation.md)
